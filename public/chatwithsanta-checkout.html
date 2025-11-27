@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chat with Santa Checkout | Magic Mail Co.</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <script src="https://js.stripe.com/v3/"></script>
+
+  <style>
+    :root {
+      /* Palette tuned to match your cream / green / brown section */
+      --mm-bg: #f7f0e6;           /* main page background */
+      --mm-bg-soft: #fbf6ee;      /* card background blend */
+      --mm-card-bg: #ffffff;
+      --mm-border: #e4d3b9;
+      --mm-primary: #874233;      /* button + accent brown */
+      --mm-primary-soft: #b86b4b;
+      --mm-primary-deep: #4f5d3b; /* deep green for headings */
+      --mm-accent: #b76c4a;       /* secondary warm accent */
+      --mm-text: #3c2b23;         /* main text */
+      --mm-muted: #8a7a6a;        /* muted text */
+      --mm-radius-xl: 26px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro",
+        "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, #f0e3cf 0, transparent 55%),
+        radial-gradient(circle at bottom right, #efe4d3 0, transparent 55%),
+        var(--mm-bg);
+      color: var(--mm-text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    .page {
+      max-width: 1040px;
+      width: 100%;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2.5fr);
+      column-gap: 40px;
+      row-gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 880px) {
+      .page {
+        grid-template-columns: minmax(0, 1fr);
+        row-gap: 24px;
+      }
+    }
+
+    /* LEFT SIDE */
+    .intro {
+      padding: 8px;
+    }
+
+    .logo-word {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--mm-muted);
+    }
+
+    .logo-rule {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, rgba(124, 94, 76, 0.0), rgba(124, 94, 76, 0.25));
+    }
+
+    .brandline {
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin: 0 0 8px;
+      color: var(--mm-primary-deep); /* green heading */
+    }
+
+    .tagline {
+      font-size: 14px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(117, 128, 108, 0.9); /* grey-green, slightly softer */
+      margin: 0 0 18px;
+      font-style: italic;
+    }
+
+    .headline {
+      font-size: 20px;
+      font-weight: 600;
+      margin: 0 0 8px;
+      color: var(--mm-text);
+    }
+
+    .subcopy {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--mm-muted);
+      max-width: 440px;
+      margin: 0 0 18px;
+    }
+
+    .benefits {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px 20px;
+      font-size: 13px;
+      color: var(--mm-text);
+      margin: 0 0 20px;
+      padding: 0;
+      list-style: none;
+    }
+
+    .benefit-label {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    .benefit-text {
+      color: var(--mm-muted);
+      font-size: 12px;
+    }
+
+    .note-line {
+      font-size: 12px;
+      color: var(--mm-muted);
+    }
+
+    /* RIGHT SIDE */
+    .card-wrap {
+      position: relative;
+    }
+
+    .glow-ring {
+      position: absolute;
+      inset: -18%;
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.8), transparent 55%),
+        radial-gradient(circle at bottom, rgba(199, 167, 132, 0.3), transparent 55%);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      border-radius: var(--mm-radius-xl);
+      background: linear-gradient(145deg, var(--mm-bg-soft), #ffffff);
+      padding: 20px 20px 22px;
+      box-shadow:
+        0 18px 50px rgba(126, 96, 70, 0.25),
+        0 0 0 1px rgba(228, 211, 185, 0.9);
+      border: 1px solid rgba(235, 220, 197, 0.95);
+      overflow: hidden;
+    }
+
+    .card-header-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 10px;
+    }
+
+    .card-title {
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--mm-primary-deep);
+    }
+
+    .price-chip {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(166, 129, 95, 0.5);
+      background: rgba(248, 239, 224, 0.95);
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      color: #5b4635;
+    }
+
+    .card-sub {
+      font-size: 12px;
+      color: var(--mm-muted);
+      margin: 0 0 14px;
+    }
+
+    .product-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border-radius: 20px;
+      padding: 12px 14px;
+      background:
+        linear-gradient(135deg, rgba(232, 206, 175, 0.9), rgba(232, 210, 189, 0.95));
+      margin-bottom: 12px;
+    }
+
+    .product-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 18px;
+      background:
+        linear-gradient(145deg, #d2a57b, #c07f5a);
+      box-shadow: 0 12px 28px rgba(142, 93, 55, 0.55);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .product-icon-inner {
+      position: absolute;
+      inset: 13px 10px 11px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 248, 244, 0.7);
+      border-top-width: 2px;
+    }
+
+    .product-main {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #3f332a;
+    }
+
+    .product-sub {
+      font-size: 12px;
+      color: #5a483a;
+      margin-top: 2px;
+    }
+
+    .product-price {
+      margin-left: auto;
+      font-weight: 700;
+      font-size: 18px;
+      color: #533a2e;
+    }
+
+    .tiny-line {
+      font-size: 11px;
+      color: var(--mm-muted);
+      margin-bottom: 12px;
+    }
+
+    .divider {
+      height: 1px;
+      border-radius: 999px;
+      background: linear-gradient(
+        to right,
+        rgba(146, 121, 100, 0),
+        rgba(146, 121, 100, 0.35),
+        rgba(146, 121, 100, 0)
+      );
+      margin: 12px 0 14px;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #4b3d38;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    #payment-element {
+      padding: 11px 12px;
+      border-radius: 18px;
+      border: 1px solid rgba(182, 142, 112, 0.7);
+      background: rgba(255, 252, 248, 0.95);
+    }
+
+    button {
+      margin-top: 4px;
+      border: none;
+      border-radius: 999px;
+      padding: 11px 26px;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--mm-primary), #6d3428);
+      color: white;
+      box-shadow:
+        0 16px 32px rgba(86, 46, 33, 0.55),
+        0 0 0 1px rgba(248, 240, 231, 0.9);
+      transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.02);
+      box-shadow:
+        0 20px 40px rgba(86, 46, 33, 0.6),
+        0 0 0 1px rgba(248, 240, 231, 1);
+    }
+
+    button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .error {
+      color: #7f1d1d;
+      font-size: 12px;
+      min-height: 16px;
+    }
+
+    .status-message {
+      margin-top: 2px;
+      font-size: 12px;
+      color: #166534;
+      min-height: 16px;
+    }
+
+    .footnote {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--mm-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- LEFT -->
+    <section class="intro">
+      <div class="logo-word">
+        Magic Mail Co.
+        <span class="logo-rule"></span>
+      </div>
+
+      <h1 class="brandline">Chat with Santa</h1>
+      <p class="tagline">The Official Connection to Santa's Workshop</p>
+
+      <p class="headline">Ask Santa anything, anytime — straight from the North Pole.</p>
+      <p class="subcopy">
+        Your child will receive messages direct from Santa Claus himself.
+      </p>
+
+      <ul class="benefits">
+        <li>
+          <span class="benefit-label">One-time access</span>
+          <span class="benefit-text">A single purchase for your entire household this season.</span>
+        </li>
+        <li>
+          <span class="benefit-label">Calm, meaningful interactions</span>
+          <span class="benefit-text">Short, thoughtful messages rather than scrolling or overstimulation.</span>
+        </li>
+        <li>
+          <span class="benefit-label">Simple and familiar</span>
+          <span class="benefit-text">Your child sees a chat from Santa — no new apps or accounts.</span>
+        </li>
+        <li>
+          <span class="benefit-label">Built for Christmas</span>
+          <span class="benefit-text">Focused on wonder, anticipation, and memory-making, not noise.</span>
+        </li>
+      </ul>
+
+      <p class="note-line">
+        After checkout, you’ll go directly to the password-protected parent dashboard.
+      </p>
+    </section>
+
+    <!-- RIGHT -->
+    <section class="card-wrap">
+      <div class="glow-ring"></div>
+      <div class="card">
+        <div class="card-header-row">
+          <div>
+            <div class="card-title">Chat with Santa Access</div>
+          </div>
+          <div class="price-chip">
+            One-time payment · $29
+          </div>
+        </div>
+
+        <p class="card-sub">
+          Complete your purchase to unlock your private Chat with Santa experience.
+        </p>
+
+        <div class="product-row">
+          <div class="product-icon">
+            <div class="product-icon-inner"></div>
+          </div>
+          <div>
+            <div class="product-main">Chat with Santa · Magic Mail Co.</div>
+            <div class="product-sub">Personal messages from Santa, sent just for your child.</div>
+          </div>
+          <div class="product-price">$29</div>
+        </div>
+
+        <p class="tiny-line">
+          No subscription, no commitments — just access for your family this Christmas.
+        </p>
+
+        <div class="divider"></div>
+
+        <form id="payment-form">
+          <div>
+            <label for="payment-element">Payment details</label>
+            <div id="payment-element"></div>
+          </div>
+
+          <button id="submit" type="submit">
+            Get Instant Access
+          </button>
+
+          <div id="error-message" class="error"></div>
+          <div id="status-message" class="status-message"></div>
+          <p class="footnote">
+            Payments are processed securely by Stripe. After confirmation, you’ll be directed to the parent dashboard.
+          </p>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const STRIPE_PUBLISHABLE_KEY = "pk_test_51S4uQjAJ8h86A8bVyrjzCjmlM1g80kQa7lidXteGJFNDskHVpJEBVgbAr0kWgwzP8ICCFeJWvw0u81oC0FtBBPkY004bo3s5P9";
+
+    const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+    let elements;
+
+    const paymentForm = document.getElementById("payment-form");
+    const submitButton = document.getElementById("submit");
+    const errorMessage = document.getElementById("error-message");
+    const statusMessage = document.getElementById("status-message");
+
+    async function initialize() {
+      setLoading(true);
+      errorMessage.textContent = "";
+      statusMessage.textContent = "";
+
+      try {
+        const response = await fetch("/create-payment-intent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        const data = await response.json();
+        if (!data.clientSecret) throw new Error("No client secret returned from server.");
+
+        const appearance = {
+          theme: "flat",
+          variables: {
+            colorPrimary: "#874233",    // brown for tabs / primary
+            colorBackground: "#fbf6ee",
+            colorText: "#3c2b23",
+            colorDanger: "#7f1d1d",
+            borderRadius: "16px",
+          },
+          rules: {
+            ".Input": {
+              boxShadow: "0 0 0 1px #c3a28a",
+              padding: "9px 10px",
+              backgroundColor: "rgba(255,252,248,1)"
+            },
+            ".Input:focus": {
+              boxShadow: "0 0 0 1px #874233",
+            },
+            ".Tab--selected": {
+              color: "#874233",
+              borderColor: "#874233"
+            },
+            ".Label": {
+              color: "#4b3d38"
+            }
+          },
+        };
+
+        elements = stripe.elements({ clientSecret: data.clientSecret, appearance });
+        const paymentElement = elements.create("payment");
+        paymentElement.mount("#payment-element");
+      } catch (err) {
+        errorMessage.textContent = err.message;
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    paymentForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      errorMessage.textContent = "";
+      statusMessage.textContent = "";
+      setLoading(true);
+
+      try {
+        const { error } = await stripe.confirmPayment({
+          elements,
+          confirmParams: {
+            return_url: "https://magicmailco.com/chatwithsanta-access",
+          },
+        });
+
+        if (error) {
+          errorMessage.textContent = error.message || "Unexpected error. Please try again.";
+        } else {
+          statusMessage.textContent = "Payment submitted. Finalizing…";
+        }
+      } catch (err) {
+        errorMessage.textContent = "Something went wrong.";
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    function setLoading(isLoading) {
+      if (isLoading) {
+        submitButton.disabled = true;
+        submitButton.textContent = "Processing…";
+      } else {
+        submitButton.disabled = false;
+        submitButton.textContent = "Get Instant Access";
+      }
+    }
+
+    initialize();
+  </script>
+</body>
+</html>
